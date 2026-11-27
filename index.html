@@ -1,0 +1,753 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mundus — Codex de Personagens</title>
+<style>
+:root {
+  --bg: #171813;
+  --panel: #22231e;
+  --panel2: #292920;
+  --gold: #dfc58d;
+  --gold2: #a68a53;
+  --text: #e8dfcb;
+  --muted: #aaa18c;
+  --border: #514b3b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+header {
+  background: linear-gradient(135deg,#302d23,#171813);
+  border-bottom: 1px solid var(--gold2);
+  padding: 28px 18px;
+  text-align: center;
+}
+header h1 {
+  font-family: Georgia,serif;
+  letter-spacing: 4px;
+  color: var(--gold);
+  margin: 0;
+}
+header p { color: var(--muted); font-size: 13px; }
+nav {
+  display: flex;
+  overflow-x: auto;
+  background: #22231e;
+  border-bottom: 1px solid var(--border);
+}
+nav button {
+  padding: 14px 18px;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+nav button.active {
+  color: var(--gold);
+  border-bottom: 2px solid var(--gold);
+}
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+}
+h2 {
+  color: var(--gold);
+  font-family: Georgia,serif;
+}
+h3 { color: var(--gold); }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 12px;
+}
+.two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 12px;
+}
+label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 6px 0;
+}
+input,select,textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #151611;
+  color: var(--text);
+}
+button.action {
+  background: #393326;
+  border: 1px solid var(--gold2);
+  color: var(--gold);
+  padding: 9px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 4px;
+}
+button.action:hover { background: #51442d; }
+.pill {
+  display: inline-block;
+  border: 1px solid #706348;
+  color: var(--gold);
+  border-radius: 20px;
+  padding: 3px 9px;
+  margin: 3px;
+  font-size: 12px;
+}
+.item {
+  padding: 12px;
+  border-bottom: 1px solid #3b3b32;
+}
+.item strong { color: var(--gold); }
+.muted { color: var(--muted); font-size: 13px; }
+.notice {
+  border-left: 3px solid var(--gold2);
+  background: #302d23;
+  padding: 12px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #39392f;
+  padding: 9px 0;
+}
+.stat input { max-width: 75px; text-align: center; }
+.list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>✦ MUNDUS ✦</h1>
+<p>CODEX DE PERSONAGENS · XIII EDIÇÃO</p>
+<p>Criação, desenvolvimento e registro de aventureiros</p>
+</header>
+
+<nav id="navigation"></nav>
+<main id="app"></main>
+<footer>MUNDUS · Codex de Personagens · Livro Básico XIII</footer>
+
+<script>
+/* ===========================
+   DADOS DO SISTEMA MUNDUS
+=========================== */
+
+const ATTRIBUTES = ["FOR","DES","INT","SAB","CAR","VIG"];
+
+const ATTRIBUTE_NAMES = {
+  FOR:"Força",
+  DES:"Destreza",
+  INT:"Inteligência",
+  SAB:"Sabedoria",
+  CAR:"Carisma",
+  VIG:"Vigor"
+};
+
+const RACES = [
+{
+ name:"Humano",
+ bonus:{CAR:2,INT:1,VIG:-1},
+ subs:["Humano","Dhampir","Lobisomem"],
+ description:"Versatilidade e determinação. Versatilidade: +2 em perícia. Determinação: repetir uma resistência falha uma vez por cena."
+},
+{
+ name:"Parasita",
+ bonus:{VIG:2,INT:1,CAR:-1},
+ subs:["Parasita","Symbionte","Anti","Carnificia","Riot","Tanque"],
+ description:"Vínculo orgânico e adaptação. Symbionte: Voz Interior, Manto Vivo (+1 CA sem armadura pesada) e fusão limitada."
+},
+{
+ name:"Ghoul",
+ bonus:{DES:2,VIG:1,SAB:-1},
+ subs:["Ghoul","Meio-Ghoul","Meio-Humano"],
+ description:"Kakuhou, Kagune e regeneração RC limitada. Kagune: Ukaku, Koukaku, Rinkaku ou Bikaku."
+},
+{
+ name:"Dragão",
+ bonus:{FOR:2,CAR:1,DES:-1},
+ subs:["Dragão","Draconato","Dragonborn"],
+ description:"Memória ancestral, presença dracônica e Palavras da Voz."
+},
+{
+ name:"Morto-vivo",
+ bonus:{INT:2,SAB:1,CAR:-1},
+ subs:["Morto-vivo","Lich","Hollow"],
+ description:"Tenacidade sobrenatural. Hollow possui progressão própria."
+},
+{
+ name:"Demônio",
+ bonus:{CAR:2,INT:1,SAB:-1},
+ subs:["Demônio","Imp","Cão Infernal","Goetia"],
+ description:"Resistência ao fogo comum e afinidade infernal."
+},
+{ name:"Vampiro", subs:["Vampiro"], description:"Povo sobrenatural vampírico." },
+{ name:"Lycan", subs:["Lycan"], description:"Povo com natureza e transformação lupina." },
+{ name:"Orc", subs:["Orc"], description:"Povo de constituição robusta." },
+{ name:"Fada", subs:["Fada"], description:"Povo ligado à magia e ao mundo feérico." },
+{ name:"Anão", subs:["Anão"], description:"Povo tradicionalmente resistente." },
+{ name:"Gigante", subs:["Gigante"], description:"Povo de grande porte." },
+{ name:"Vastaya", subs:["Vastaya"], description:"Povo de natureza híbrida fantástica." },
+{ name:"Kitsune", subs:["Kitsune"], description:"Povo de natureza mística e raposa." },
+{ name:"Bestial", subs:["Bestial"], description:"Povo com dez afinidades bestiais." },
+{ name:"Aurídeos", subs:["Aurídeos"], description:"Povo registrado no livro." },
+{ name:"Nacarinos", subs:["Nacarinos"], description:"Povo registrado no livro." },
+{ name:"Ecosforjados", subs:["Ecosforjados"], description:"Povo registrado no livro." },
+{ name:"Penumbrais", subs:["Penumbrais"], description:"Povo registrado no livro." }
+];
+
+const CLASSES = [
+["Guerreiro","Combatente","FOR","DES"],
+["Bucaneiro","Combatente","DES","CAR"],
+["Cavaleiro","Combatente","VIG","CAR"],
+["Caçador","Combatente","DES","SAB"],
+["Bárbaro","Combatente","FOR","VIG"],
+["Lutador","Combatente","FOR","DES"],
+
+["Mago","Arcano","INT","SAB"],
+["Feiticeiro","Arcano","CAR","VIG"],
+["Bruxo","Arcano","CAR","INT"],
+["Necromante","Arcano","INT","SAB"],
+["Clérigo","Arcano","SAB","CAR"],
+["Tecelão Astral","Arcano","INT","DES"],
+
+["Ladino","Especialista","DES","INT"],
+["Inventor","Especialista","INT","DES"],
+["Druida","Especialista","SAB","VIG"],
+["Domador","Especialista","SAB","CAR"],
+["Alquimista","Especialista","INT","SAB"],
+["Estrategista","Especialista","INT","CAR"],
+
+["Cartógrafo do Impossível","Exploração","INT","SAB"],
+["Guardião do Limiar","Defesa","VIG","SAB"],
+["Maquinista de Relíquias","Ofício","INT","DES"],
+["Arauto da Aurora Longa","Ritual","CAR","SAB"],
+["Diplomata dos Ecos","Social","CAR","SAB"],
+["Peregrino Abissal","Exploração","VIG","SAB"]
+];
+
+const MILESTONES = [
+[5,"Fundamento"],
+[10,"Aprofundamento"],
+[15,"Técnica"],
+[20,"Repertório"],
+[35,"Inflexão"],
+[50,"Travessia"],
+[75,"Domínio"],
+[100,"Legado"],
+[200,"Consagração"]
+];
+
+const TALENT_CATEGORIES = [
+"Disciplina marcial",
+"Defesa e resistência",
+"Exploração do mundo",
+"Energia e foco",
+"Movimento e posição",
+"Estudo, ciência e invenção",
+"Vontade e diplomacia",
+"Medicina e proteção civil",
+"Companheiros e sinergia",
+"Sigilo e investigação",
+"Afinidades e fenômenos",
+"Alma e identidade"
+];
+
+/* ===========================
+   ESTADO DA FICHA
+=========================== */
+
+let character = {
+ name:"",
+ level:1,
+ race:"Humano",
+ subrace:"Humano",
+ classGroup:"Combatente",
+ trail:"Guerreiro",
+ attributes:{FOR:1,DES:1,INT:1,SAB:1,CAR:1,VIG:1}
+};
+
+let currentPage = "Ficha";
+
+const PAGES = [
+"Ficha",
+"Raças",
+"Classes e Trilhas",
+"Talentos",
+"Regras gerais"
+];
+
+/* ===========================
+   NAVEGAÇÃO
+=========================== */
+
+function renderNavigation(){
+ const nav=document.getElementById("navigation");
+ nav.innerHTML=PAGES.map(p=>
+ `<button class="${p===currentPage?'active':''}" onclick="navigate('${p}')">${p}</button>`
+ ).join("");
+}
+
+function navigate(page){
+ currentPage=page;
+ renderNavigation();
+ renderPage();
+}
+
+function renderPage(){
+ const app=document.getElementById("app");
+ if(currentPage==="Ficha") renderSheet(app);
+ if(currentPage==="Raças") renderRaces(app);
+ if(currentPage==="Classes e Trilhas") renderClasses(app);
+ if(currentPage==="Talentos") renderTalents(app);
+ if(currentPage==="Regras gerais") renderRules(app);
+}
+
+/* ===========================
+   UTILITÁRIOS
+=========================== */
+
+function escapeHTML(str){
+ return String(str??"").replace(/[&<>"']/g,m=>({
+ "&":"&amp;",
+ "<":"&lt;",
+ ">":"&gt;",
+ '"':"&quot;",
+ "'":"&#39;"
+ }[m]));
+}
+
+function getRace(){
+ return RACES.find(r=>r.name===character.race)||RACES[0];
+}
+
+function getTrail(){
+ return CLASSES.find(c=>c[0]===character.trail)||CLASSES[0];
+}
+
+function getRacialBonus(attribute){
+ return getRace().bonus?.[attribute]||0;
+}
+
+function getAdjustedAttribute(attribute){
+ return (character.attributes[attribute]||0)+getRacialBonus(attribute);
+}
+
+function optionList(values,current){
+ return values.map(v=>
+ `<option value="${escapeHTML(v)}" ${v===current?"selected":""}>${escapeHTML(v)}</option>`
+ ).join("");
+}
+
+/* ===========================
+   FICHA
+=========================== */
+
+function renderSheet(app){
+ const race=getRace();
+ const trail=getTrail();
+ const total=ATTRIBUTES.reduce((s,a)=>s+character.attributes[a],0);
+
+ app.innerHTML=`
+ <h2>Ficha de personagem</h2>
+
+ <div class="grid">
+  <div>
+   <label>Nome do personagem</label>
+   <input id="charName" value="${escapeHTML(character.name)}" placeholder="Nome">
+  </div>
+
+  <div>
+   <label>Nível</label>
+   <input id="charLevel" type="number" min="1" max="200" value="${character.level}">
+  </div>
+
+  <div>
+   <label>Raça</label>
+   <select id="charRace">${optionList(RACES.map(r=>r.name),character.race)}</select>
+  </div>
+
+  <div>
+   <label>Sub-raça</label>
+   <select id="charSubrace">${optionList(race.subs,character.subrace)}</select>
+  </div>
+
+  <div>
+   <label>Classe-base</label>
+   <select id="charGroup">
+    ${optionList(["Combatente","Arcano","Especialista"],character.classGroup)}
+   </select>
+  </div>
+
+  <div>
+   <label>Trilha</label>
+   <select id="charTrail">
+    ${optionList(CLASSES.map(c=>c[0]),character.trail)}
+   </select>
+  </div>
+ </div>
+
+ <div class="card">
+  <h3>Atributos</h3>
+  <p class="muted">Distribuição base · Total de pontos: ${total}</p>
+  ${ATTRIBUTES.map(a=>`
+   <div class="stat">
+    <span>${ATTRIBUTE_NAMES[a]} (${a})</span>
+    <div>
+     <input type="number" min="1" max="4" value="${character.attributes[a]}" data-attribute="${a}">
+     <span class="pill">Raça ${getRacialBonus(a)>=0?"+":""}${getRacialBonus(a)}</span>
+     <strong>${getAdjustedAttribute(a)}</strong>
+    </div>
+   </div>
+  `).join("")}
+ </div>
+
+ <div class="two">
+  <div class="card">
+   <h3>Recursos</h3>
+   <div class="stat"><span>Vida / PV</span><strong>—</strong></div>
+   <div class="stat"><span>Mana / Energia</span><strong>—</strong></div>
+   <div class="stat"><span>Defesa / CA</span><strong>—</strong></div>
+   <div class="notice">Fórmulas aguardando confirmação integral do livro oficial.</div>
+  </div>
+
+  <div class="card">
+   <h3>Resumo</h3>
+   <p><strong>Raça:</strong> ${escapeHTML(race.name)}</p>
+   <p>${escapeHTML(race.description)}</p>
+   <p><strong>Trilha:</strong> ${escapeHTML(trail[0])}</p>
+   <p class="muted">Grupo: ${escapeHTML(trail[1])}</p>
+   <p class="muted">Principal: ${ATTRIBUTE_NAMES[trail[2]]} · Secundário: ${ATTRIBUTE_NAMES[trail[3]]}</p>
+  </div>
+ </div>
+
+ <button class="action" onclick="resetSheet()">Resetar ficha</button>
+ <button class="action" onclick="window.print()">Imprimir ficha</button>
+ `;
+
+ document.getElementById("charName").oninput=e=>character.name=e.target.value;
+
+ document.getElementById("charLevel").onchange=e=>{
+  character.level=Math.min(200,Math.max(1,Number(e.target.value)||1));
+  renderSheet(app);
+ };
+
+ document.getElementById("charRace").onchange=e=>{
+  character.race=e.target.value;
+  character.subrace=getRace().subs[0];
+  renderSheet(app);
+ };
+
+ document.getElementById("charSubrace").onchange=e=>character.subrace=e.target.value;
+
+ document.getElementById("charGroup").onchange=e=>{
+  character.classGroup=e.target.value;
+  const first=CLASSES.find(c=>c[1]===character.classGroup);
+  if(first)character.trail=first[0];
+  renderSheet(app);
+ };
+
+ document.getElementById("charTrail").onchange=e=>{
+  character.trail=e.target.value;
+  character.classGroup=getTrail()[1];
+  renderSheet(app);
+ };
+
+ document.querySelectorAll("[data-attribute]").forEach(input=>{
+  input.onchange=e=>{
+   const a=e.target.dataset.attribute;
+   character.attributes[a]=Math.max(1,Math.min(4,Number(e.target.value)||1));
+   renderSheet(app);
+  };
+ });
+}
+
+function resetSheet(){
+ character={
+  name:"",
+  level:1,
+  race:"Humano",
+  subrace:"Humano",
+  classGroup:"Combatente",
+  trail:"Guerreiro",
+  attributes:{FOR:1,DES:1,INT:1,SAB:1,CAR:1,VIG:1}
+ };
+ renderPage();
+}
+
+/* ===========================
+   RAÇAS
+=========================== */
+
+function renderRaces(app){
+ app.innerHTML=`
+ <h2>Raças e povos</h2>
+ <input id="raceSearch" placeholder="Pesquisar raça, sub-raça ou característica">
+ <div class="notice">
+ Regra racial identificada: +2 em um atributo, +1 em outro e −1 em um terceiro para as raças com distribuição confirmada.
+ Sub-raças mantêm os atributos da raça-base. Respeitar os limites de criação.
+ </div>
+ <div id="raceList" class="list"></div>
+ `;
+
+ const list=document.getElementById("raceList");
+
+ function refresh(q=""){
+  list.innerHTML=RACES.filter(r=>
+   (r.name+" "+r.subs.join(" ")+" "+r.description).toLowerCase().includes(q.toLowerCase())
+  ).map(r=>`
+   <div class="item">
+    <strong>${escapeHTML(r.name)}</strong>
+    <div>
+     ${r.bonus
+      ?Object.entries(r.bonus).map(([a,v])=>`<span class="pill">${a} ${v>0?"+":""}${v}</span>`).join("")
+      :'<span class="pill">Atributos a confirmar</span>'}
+    </div>
+    <p>${escapeHTML(r.description)}</p>
+    <div class="muted"><strong>Sub-raças:</strong> ${escapeHTML(r.subs.join(" · "))}</div>
+   </div>
+  `).join("");
+ }
+
+ refresh();
+ document.getElementById("raceSearch").oninput=e=>refresh(e.target.value);
+}
+
+/* ===========================
+   CLASSES E TRILHAS
+=========================== */
+
+function renderClasses(app){
+ app.innerHTML=`
+ <h2>Classes e Trilhas</h2>
+
+ <div class="grid">
+  <div>
+   <label>Grupo</label>
+   <select id="classGroupFilter">
+    <option>Todos</option>
+    <option>Combatente</option>
+    <option>Arcano</option>
+    <option>Especialista</option>
+    <option>Outros</option>
+   </select>
+  </div>
+  <div>
+   <label>Pesquisa</label>
+   <input id="classSearch" placeholder="Nome da trilha">
+  </div>
+ </div>
+
+ <div class="notice">
+ As trilhas são organizadas dentro de Combatente, Arcano e Especialista.
+ Categorias complementares identificam o foco de atuação.
+ </div>
+
+ <div id="classList" class="list"></div>
+ `;
+
+ const list=document.getElementById("classList");
+
+ function refresh(){
+  const group=document.getElementById("classGroupFilter").value;
+  const q=document.getElementById("classSearch").value.toLowerCase();
+
+  list.innerHTML=CLASSES.filter(c=>{
+   const groupMatch=group==="Todos"||c[1]===group||
+    (group==="Outros"&&!["Combatente","Arcano","Especialista"].includes(c[1]));
+   return groupMatch&&c.join(" ").toLowerCase().includes(q);
+  }).map(c=>`
+   <div class="item">
+    <strong>${escapeHTML(c[0])}</strong>
+    <span class="pill">${escapeHTML(c[1])}</span>
+    <p class="muted">
+     Atributo principal: ${ATTRIBUTE_NAMES[c[2]]}
+     · Secundário: ${ATTRIBUTE_NAMES[c[3]]}
+    </p>
+   </div>
+  `).join("");
+ }
+
+ document.getElementById("classGroupFilter").onchange=refresh;
+ document.getElementById("classSearch").oninput=refresh;
+ refresh();
+}
+
+/* ===========================
+   TALENTOS
+=========================== */
+
+function renderTalents(app){
+ app.innerHTML=`
+ <h2>Catálogo de Talentos</h2>
+
+ <div class="two">
+  <div class="card">
+   <h3>Talentos Ativos</h3>
+   <strong style="font-size:25px">60</strong>
+   <p class="muted">Talentos ativos do livro</p>
+  </div>
+  <div class="card">
+   <h3>Talentos Passivos</h3>
+   <strong style="font-size:25px">60</strong>
+   <p class="muted">Talentos passivos do livro</p>
+  </div>
+ </div>
+
+ <div class="grid">
+  <div>
+   <label>Tipo de talento</label>
+   <select id="talentType">
+    <option>Todos</option>
+    <option>Ativos</option>
+    <option>Passivos</option>
+   </select>
+  </div>
+  <div>
+   <label>Pesquisa</label>
+   <input id="talentSearch" placeholder="Pesquisar talento">
+  </div>
+ </div>
+
+ <div class="notice">
+ Os 120 talentos existem no catálogo oficial. Esta versão exportável contém a estrutura de registro, mas seus nomes, descrições, requisitos, custos e efeitos ainda precisam ser transcritos fielmente das páginas 140–149 do Livro XIII.
+ Não são talentos inventados.
+ </div>
+
+ <div id="talentResults"></div>
+ `;
+
+ document.getElementById("talentType").onchange=refreshTalentList;
+ document.getElementById("talentSearch").oninput=refreshTalentList;
+ refreshTalentList();
+}
+
+function refreshTalentList(){
+ const results=document.getElementById("talentResults");
+ if(!results)return;
+
+ const type=document.getElementById("talentType").value;
+ const query=document.getElementById("talentSearch").value.toLowerCase();
+ const types=type==="Todos"?["Ativos","Passivos"]:[type];
+
+ results.innerHTML=types.map(t=>{
+  const entries=Array.from({length:60},(_,i)=>({
+   name:`Registro ${String(i+1).padStart(2,"0")}`,
+   description:"Conteúdo oficial pendente de transcrição.",
+   type:t
+  })).filter(x=>(x.name+" "+x.description).toLowerCase().includes(query));
+
+  return `
+   <div class="card">
+    <h3>Talentos ${t}</h3>
+    <div class="muted">${entries.length} registros</div>
+    ${entries.map(x=>`
+     <div class="item">
+      <strong>${x.name}</strong>
+      <p class="muted">${x.description}</p>
+     </div>
+    `).join("")}
+   </div>
+  `;
+ }).join("");
+}
+
+/* ===========================
+   REGRAS GERAIS
+=========================== */
+
+function renderRules(app){
+ app.innerHTML=`
+ <h2>Regras gerais</h2>
+
+ <div class="card">
+  <h3>Marcos de progressão</h3>
+  ${MILESTONES.map(m=>`
+   <div class="stat">
+    <span>Nível ${m[0]}</span>
+    <strong>${m[1]}</strong>
+   </div>
+  `).join("")}
+ </div>
+
+ <div class="card">
+  <h3>Classes-base</h3>
+  <p>Combatente · Arcano · Especialista</p>
+  <p class="muted">Trilhas organizadas dentro da estrutura de classes-base.</p>
+ </div>
+
+ <div class="card">
+  <h3>Raças</h3>
+  <p>Raças possuem modificadores de atributos e características próprias. Sub-raças mantêm a distribuição racial base.</p>
+ </div>
+
+ <div class="card">
+  <h3>Passivas tradicionais</h3>
+  <p>Catálogo de 180 passivas, dividido em 18 especializações, com 10 passivas cada.</p>
+  <p>Slots registrados:</p>
+  <ul>
+   <li>1º círculo: 1 slot</li>
+   <li>2º círculo: 2 slots</li>
+   <li>3º círculo: 3 slots</li>
+  </ul>
+ </div>
+
+ <div class="card">
+  <h3>Talentos gerais</h3>
+  <p>120 talentos gerais: 60 ativos e 60 passivos.</p>
+ </div>
+
+ <div class="card">
+  <h3>Categorias de referência</h3>
+  ${TALENT_CATEGORIES.map(c=>`<span class="pill">${c}</span>`).join("")}
+ </div>
+
+ <div class="notice">
+ Esta interface é um projeto em revisão. Fórmulas de PV, Mana, recursos, defesa, requisitos e efeitos precisam ser validados diretamente no Livro Básico XIII.
+ </div>
+ `;
+}
+
+/* ===========================
+   INICIALIZAÇÃO
+=========================== */
+
+renderNavigation();
+renderPage();
+</script>
+
+</body>
+</html>
